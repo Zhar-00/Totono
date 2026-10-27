@@ -1,0 +1,40 @@
+name: 1. Extraer Scripts de Ren'Py
+
+on:
+  workflow_dispatch:
+
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Java y Python
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Instalar Apktool y Unrpyc
+        run: |
+          wget https://bitbucket.org/iBotPeaches/apktool/downloads/apktool_2.9.3.jar -O apktool.jar
+          git clone https://github.com/CensoredUsername/unrpyc.git
+
+      - name: Desempaquetar APK
+        run: java -jar apktool.jar d totono_ingles.apk -o apk_desempaquetado
+
+      - name: Descompilar .rpyc a .rpy
+        run: |
+          cd apk_desempaquetado/assets/game
+          python ../../../unrpyc/unrpyc.py *.rpyc
+          
+      - name: Guardar Scripts Originales (.rpy)
+        uses: actions/upload-artifact@v4
+        with:
+          name: Totono-Scripts-Ingles
+          path: apk_desempaquetado/assets/game/*.rpy
+          
