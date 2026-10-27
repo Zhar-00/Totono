@@ -24,6 +24,11 @@ jobs:
           wget https://bitbucket.org/iBotPeaches/apktool/downloads/apktool_2.9.3.jar -O apktool.jar
           git clone https://github.com/CensoredUsername/unrpyc.git
 
+      - name: Descargar APK masivo desde Google Drive
+        run: |
+          pip install gdown
+          gdown "10BB1sV437S7weL_GAAuYtSLOWOiHma-u" -O totono_ingles.apk
+
       - name: Desempaquetar APK
         run: java -jar apktool.jar d totono_ingles.apk -o apk_desempaquetado
 
