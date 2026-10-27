@@ -28,18 +28,34 @@ jobs:
         run: |
           pip install gdown
           gdown "10BB1sV437S7weL_GAAuYtSLOWOiHma-u" -O totono_ingles.apk
+          echo "Verificando peso del archivo descargado:"
+          ls -lh totono_ingles.apk
 
       - name: Desempaquetar APK
         run: java -jar apktool.jar d totono_ingles.apk -o apk_desempaquetado
 
-      - name: Descompilar .rpyc a .rpy
+      - name: Buscar y descompilar scripts
         run: |
-          cd apk_desempaquetado/assets/game
-          python ../../../unrpyc/unrpyc.py *.rpyc
+          # Buscar la ruta real de los archivos .rpyc dinámicamente
+          RPYC_DIR=$(find apk_desempaquetado -type f -name "*.rpyc" -printf '%h\n' | sort -u | head -n 1)
+          
+          if [ -z "$RPYC_DIR" ]; then
+            echo "ERROR: No se encontraron archivos .rpyc sueltos."
+            echo "Buscando si el juego está empaquetado en archivos .rpa..."
+            find apk_desempaquetado -name "*.rpa"
+            echo "Mostrando estructura de la carpeta assets para diagnóstico:"
+            ls -la apk_desempaquetado/assets/ || echo "No hay carpeta assets"
+            exit 1
+          fi
+          
+          echo "¡Archivos de script encontrados en: $RPYC_DIR!"
+          cd "$RPYC_DIR"
+          python $GITHUB_WORKSPACE/unrpyc/unrpyc.py *.rpyc
           
       - name: Guardar Scripts Originales (.rpy)
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: Totono-Scripts-Ingles
-          path: apk_desempaquetado/assets/game/*.rpy
+          path: apk_desempaquetado/**/*.rpy
           
