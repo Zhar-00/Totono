@@ -19,43 +19,42 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Instalar Apktool y Unrpyc
+      - name: Instalar Apktool, Unrpyc y Rpatool
         run: |
           wget https://bitbucket.org/iBotPeaches/apktool/downloads/apktool_2.9.3.jar -O apktool.jar
           git clone https://github.com/CensoredUsername/unrpyc.git
+          wget https://raw.githubusercontent.com/Shizmob/rpatool/master/rpatool -O rpatool
 
       - name: Descargar APK masivo desde Google Drive
         run: |
           pip install gdown
           gdown "10BB1sV437S7weL_GAAuYtSLOWOiHma-u" -O totono_ingles.apk
-          echo "Verificando peso del archivo descargado:"
-          ls -lh totono_ingles.apk
 
       - name: Desempaquetar APK
         run: java -jar apktool.jar d totono_ingles.apk -o apk_desempaquetado
 
-      - name: Buscar y descompilar scripts
+      - name: Extraer archivos RPA y descompilar RPYC
         run: |
-          # Buscar la ruta real de los archivos .rpyc dinámicamente
-          RPYC_DIR=$(find apk_desempaquetado -type f -name "*.rpyc" -printf '%h\n' | sort -u | head -n 1)
-          
-          if [ -z "$RPYC_DIR" ]; then
-            echo "ERROR: No se encontraron archivos .rpyc sueltos."
-            echo "Buscando si el juego está empaquetado en archivos .rpa..."
-            find apk_desempaquetado -name "*.rpa"
-            echo "Mostrando estructura de la carpeta assets para diagnóstico:"
-            ls -la apk_desempaquetado/assets/ || echo "No hay carpeta assets"
-            exit 1
+          # 1. Buscar la carpeta principal del juego (usualmente assets/x-game o assets/game)
+          GAME_DIR=$(find apk_desempaquetado -type d -name "x-game" | head -n 1)
+          if [ -z "$GAME_DIR" ]; then
+            GAME_DIR=$(find apk_desempaquetado -type d -name "game" | head -n 1)
           fi
+          echo "Directorio del juego detectado en: $GAME_DIR"
+          cd "$GAME_DIR"
           
-          echo "¡Archivos de script encontrados en: $RPYC_DIR!"
-          cd "$RPYC_DIR"
-          python $GITHUB_WORKSPACE/unrpyc/unrpyc.py *.rpyc
+          # 2. Romper las bóvedas .rpa
+          echo "Extrayendo archivos .rpa..."
+          find . -maxdepth 1 -name "*.rpa" -exec python $GITHUB_WORKSPACE/rpatool -x {} -o ./ \;
+          
+          # 3. Descompilar todos los .rpyc resultantes a .rpy
+          echo "Descompilando scripts..."
+          find . -name "*.rpyc" -exec python $GITHUB_WORKSPACE/unrpyc/unrpyc.py {} +
           
       - name: Guardar Scripts Originales (.rpy)
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: Totono-Scripts-Ingles
+          # Guardamos solo los .rpy para que el ZIP no pese gigabytes
           path: apk_desempaquetado/**/*.rpy
-          
