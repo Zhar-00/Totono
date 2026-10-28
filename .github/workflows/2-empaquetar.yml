@@ -1,0 +1,54 @@
+name: 2. Empaquetar y Firmar APK (Español)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar repositorio (assets modificados)
+        uses: actions/checkout@v4
+
+      - name: Configurar Java y Python
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Preparar Herramientas (Apktool y Uber Apk Signer)
+        run: |
+          wget https://bitbucket.org/iBotPeaches/apktool/downloads/apktool_2.9.3.jar -O apktool.jar
+          wget https://github.com/patrickfav/uber-apk-signer/releases/download/v1.3.0/uber-apk-signer-1.3.0.jar -O signer.jar
+
+      - name: Descargar APK base desde Google Drive
+        run: |
+          pip install gdown
+          gdown "10BB1sV437S7weL_GAAuYtSLOWOiHma-u" -O base.apk
+
+      - name: Desempaquetar APK original
+        run: java -jar apktool.jar d base.apk -o apk_desempaquetado
+
+      - name: Inyectar textos en español
+        run: |
+          # Descomprimir tus traducciones sobre la carpeta del juego, sobreescribiendo el inglés
+          unzip -o assets_modificados.zip -d apk_desempaquetado/
+          
+          # Borrar los códigos compilados antiguos para forzar a Ren'Py a leer el nuevo español
+          echo "Limpiando caché de compilación..."
+          find apk_desempaquetado/assets/ -type f -name "*.rpyc" -delete
+
+      - name: Reconstruir APK
+        run: java -jar apktool.jar b apk_desempaquetado -o totono_espanol_sin_firma.apk
+
+      - name: Firmar APK para Android
+        run: java -jar signer.jar -a totono_espanol_sin_firma.apk --out apk_final
+
+      - name: Guardar APK Jugable
+        uses: actions/upload-artifact@v4
+        with:
+          name: Totono-Espanol-Android
+          path: apk_final/*.apk
