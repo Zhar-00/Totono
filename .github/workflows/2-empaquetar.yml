@@ -46,21 +46,22 @@ jobs:
           mkdir -p proyecto_falso/game/x-tl
           cp -r apk_desempaquetado/assets/x-game/x-tl/x-english proyecto_falso/game/x-tl/
           
-          # 4. Crear un parche para FORZAR al juego a cargar el idioma inglés (tu español)
-          echo "init 999 python:" > proyecto_falso/game/forzar_idioma.rpy
-          echo "    _preferences.language = 'english'" >> proyecto_falso/game/forzar_idioma.rpy
+          # 4. Crear un parche con el prefijo "x-" para engañar al motor ruso
+          echo "init 999 python:" > proyecto_falso/game/x-lang.rpy
+          echo "    _preferences.language = 'english'" >> proyecto_falso/game/x-lang.rpy
           
-          # 5. Compilar el proyecto falso (genera los .rpyc sin tocar el juego original)
+          # 5. Compilar el proyecto falso
           echo "Compilando scripts aislados..."
           ./renpy-8.3.0-sdk/renpy.sh proyecto_falso compile
           
-          # 6. Borrar los .rpyc antiguos del APK e inyectar los nuevos compilados limpios
+          # 6. Reintegrar traducciones al APK
           echo "Reintegrando archivos al APK..."
           find apk_desempaquetado/assets/x-game/x-tl/x-english/ -type f -name "*.rpyc" -delete || true
           cp -r proyecto_falso/game/x-tl/x-english/* apk_desempaquetado/assets/x-game/x-tl/x-english/
           
-          # 7. Añadir el parche de idioma a la raíz del juego
-          cp proyecto_falso/game/forzar_idioma.rpyc apk_desempaquetado/assets/x-game/ || true
+          # 7. Añadir el parche de idioma con su nombre camuflado
+          cp proyecto_falso/game/x-lang.rpyc apk_desempaquetado/assets/x-game/ || true
+
 
 
 
