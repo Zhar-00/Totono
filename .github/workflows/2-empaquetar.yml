@@ -32,30 +32,36 @@ jobs:
       - name: Desempaquetar APK original
         run: java -jar apktool.jar d base.apk -o apk_desempaquetado
 
-      - name: Inyectar textos en español
+      - name: Inyectar y Compilar textos en español
         run: |
           # 1. Descomprimir tus traducciones sobre la carpeta del juego
           unzip -o assets_modificados.zip -d apk_desempaquetado/
           
-          # 2. Borrar los .rpyc de inglés obsoletos
-          echo "Borrando compilaciones antiguas..."
-          find apk_desempaquetado/assets/x-game/x-tl/x-english/x-script/ -type f -name "*.rpyc" -delete || true
-
-      - name: Compilar traducciones a .rpyc
-        run: |
-          # 3. Descargar el motor Ren'Py oficial (versión 8.3 para Python 3)
+          # 2. Descargar el motor Ren'Py oficial (versión 8.3)
           wget https://www.renpy.org/dl/8.3.0/renpy-8.3.0-sdk.tar.bz2
           tar -xf renpy-8.3.0-sdk.tar.bz2
           
-          # 4. Renombrar temporalmente la carpeta x-game a game para que el motor la reconozca
-          mv apk_desempaquetado/assets/x-game apk_desempaquetado/assets/game
+          # 3. Crear un "proyecto falso" (sandbox) para compilar SOLO la traducción
+          echo "Creando sandbox de compilación..."
+          mkdir -p proyecto_falso/game/x-tl
+          cp -r apk_desempaquetado/assets/x-game/x-tl/x-english proyecto_falso/game/x-tl/
           
-          # 5. Forzar la compilación de todos los scripts (esto creará tus nuevos .rpyc en español)
-          echo "Compilando scripts a bytecode..."
-          ./renpy-8.3.0-sdk/renpy.sh apk_desempaquetado/assets compile
+          # 4. Crear un parche para FORZAR al juego a cargar el idioma inglés (tu español)
+          echo "init 999 python:" > proyecto_falso/game/forzar_idioma.rpy
+          echo "    _preferences.language = 'english'" >> proyecto_falso/game/forzar_idioma.rpy
           
-          # 6. Devolverle su nombre modificado para que el port de Android funcione
-          mv apk_desempaquetado/assets/game apk_desempaquetado/assets/x-game
+          # 5. Compilar el proyecto falso (genera los .rpyc sin tocar el juego original)
+          echo "Compilando scripts aislados..."
+          ./renpy-8.3.0-sdk/renpy.sh proyecto_falso compile
+          
+          # 6. Borrar los .rpyc antiguos del APK e inyectar los nuevos compilados limpios
+          echo "Reintegrando archivos al APK..."
+          find apk_desempaquetado/assets/x-game/x-tl/x-english/ -type f -name "*.rpyc" -delete || true
+          cp -r proyecto_falso/game/x-tl/x-english/* apk_desempaquetado/assets/x-game/x-tl/x-english/
+          
+          # 7. Añadir el parche de idioma a la raíz del juego
+          cp proyecto_falso/game/forzar_idioma.rpyc apk_desempaquetado/assets/x-game/ || true
+
 
 
       - name: Reconstruir APK
