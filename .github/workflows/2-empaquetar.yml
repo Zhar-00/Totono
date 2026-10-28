@@ -34,12 +34,12 @@ jobs:
 
       - name: Inyectar textos en español
         run: |
-          # Descomprimir tus traducciones sobre la carpeta del juego, sobreescribiendo el inglés
+          # Descomprimir tus traducciones sobre la carpeta del juego
           unzip -o assets_modificados.zip -d apk_desempaquetado/
           
-          # Borrar los códigos compilados antiguos para forzar a Ren'Py a leer el nuevo español
-          echo "Limpiando caché de compilación..."
-          find apk_desempaquetado/assets/ -type f -name "*.rpyc" -delete
+          # Borrar SOLO los .rpyc de la carpeta de inglés para no romper el juego base
+          echo "Limpiando caché de traducción..."
+          find apk_desempaquetado/assets/x-game/x-tl/x-english/ -type f -name "*.rpyc" -delete || true
 
       - name: Reconstruir APK
         run: java -jar apktool.jar b apk_desempaquetado -o totono_espanol_sin_firma.apk
