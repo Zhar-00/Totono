@@ -35,7 +35,7 @@ jobs:
       - name: Inyectar y Compilar textos en español
         run: |
           # 1. Descomprimir tus traducciones sobre la carpeta del juego
-          unzip -o assets_modificados.zip -d apk_desempaquetado/
+          unzip -o assets_modificados.zip -d apk_desempaquetado/assets/x-game/
           
           # 2. Descargar el motor Ren'Py oficial (versión 8.3)
           wget https://www.renpy.org/dl/8.3.0/renpy-8.3.0-sdk.tar.bz2
@@ -46,21 +46,14 @@ jobs:
           mkdir -p proyecto_falso/game/x-tl
           cp -r apk_desempaquetado/assets/x-game/x-tl/x-english proyecto_falso/game/x-tl/
           
-          # 4. Crear un parche con el prefijo "x-" para engañar al motor ruso
-          echo "init 999 python:" > proyecto_falso/game/x-lang.rpy
-          echo "    _preferences.language = 'english'" >> proyecto_falso/game/x-lang.rpy
-          
-          # 5. Compilar el proyecto falso
+          # 4. Compilar el proyecto falso
           echo "Compilando scripts aislados..."
           ./renpy-8.3.0-sdk/renpy.sh proyecto_falso compile
           
-          # 6. Reintegrar traducciones al APK
+          # 5. Reintegrar traducciones al APK
           echo "Reintegrando archivos al APK..."
           find apk_desempaquetado/assets/x-game/x-tl/x-english/ -type f -name "*.rpyc" -delete || true
           cp -r proyecto_falso/game/x-tl/x-english/* apk_desempaquetado/assets/x-game/x-tl/x-english/
-          
-          # 7. Añadir el parche de idioma con su nombre camuflado
-          cp proyecto_falso/game/x-lang.rpyc apk_desempaquetado/assets/x-game/ || true
 
 
 
